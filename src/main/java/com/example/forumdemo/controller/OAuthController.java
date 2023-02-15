@@ -5,9 +5,12 @@ import com.example.forumdemo.dto.GitHubUser;
 import com.example.forumdemo.provider.GitHubProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ReactiveAdapterRegistry;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+
+import javax.servlet.http.HttpServletRequest;
 
 @Controller
 public class OAuthController {
@@ -20,10 +23,11 @@ public class OAuthController {
     private String clientSecret;
     @Value("${github.redirect.url}")
     private String redirectUrl;
-    @Value("${github}")
+
     @GetMapping("/callback")
     public String callback(@RequestParam(name = "code") String code,
-                           @RequestParam(name = "state") String state){
+                           @RequestParam(name = "state") String state,
+                           HttpServletRequest request){
         AccessTokenDTO accessTokenDTO = new AccessTokenDTO();
         accessTokenDTO.setClient_id(clientId);
         accessTokenDTO.setClient_secret(clientSecret);
@@ -32,6 +36,13 @@ public class OAuthController {
         accessTokenDTO.setState(state);
         String accessToken = gitHubProvider.getAccessToken(accessTokenDTO);
         GitHubUser user = gitHubProvider.getUser(accessToken);
-        return "index";
+        if(user != null){
+            // Log in successfully, create session and cookie
+            request.getSession().setAttribute("user", user);
+            return "redirect:/";
+        }else{
+            // Log in failed
+            return "redirect:/";
+        }
     }
 }
